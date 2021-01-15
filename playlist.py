@@ -2,87 +2,85 @@ from dotenv import load_dotenv, find_dotenv
 import os
 import requests
 import json
+import spotipy
+from spotipy.oauth2 import SpotifyOAuth
+from spotipy.oauth2 import SpotifyClientCredentials
+from time import sleep
 
 load_dotenv()
-token = os.getenv('TOKEN')
-user_id = '12170530026'
 
-endpoint_url = "https://api.spotify.com/v1/recommendations?"
+class radio_playlist:
 
-# OUR FILTERS
-limit=10
-market="US"
-seed_genres="indie"
-target_danceability=0.9
+    def __init__(self, pl_name):
+        self.pl_name = pl_name
+        scope = "playlist-modify-public"
+        self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+        self.user_id = self.sp.me()['id']
 
-query = f'{endpoint_url}limit={limit}&market={market}&seed_genres={seed_genres}&target_danceability={target_danceability}'
+    def rotate_playlist(self):
+        self.sp.playlist_reorder_items(self.get_pl_id(),0,7)
 
-response =requests.get(query, 
-               headers={"Content-Type":"application/json", 
-                        "Authorization":f"Bearer {token}"})
+    def create_playlist(self):
+        try:
+            self.get_pl_id()
+        except:
+            self.sp.user_playlist_create(self.user_id, name = self.pl_name)
 
-json_response = response.json()
-print(json_response)
-uris = []
+    def generate_tracks(self, seed):
+        
+        tracks = self.sp.recommendations(seed_genres=[seed], limit=7) 
+        uris= []
 
-for i in json_response['tracks']:
-            uris.append(i)
-            print(f"\"{i['name']}\" by {i['artists'][0]['name']}")
+        for i in tracks['tracks']:
+            uris.append(i['id'])
 
-def create_playlist(name):
+        return uris
+
+    def get_pl_id(self):
+        playlists = self.sp.user_playlists(self.user_id)
+        data = []
+
+        for i in playlists['items']:
+            data.append( (i['name'], i['id']) )
+        
+        data = dict(data)
+        pl_id  = data[self.pl_name]
+
+        return pl_id
+
+    def fill_playlist(self, seed):
+        self.sp.playlist_add_items(self.get_pl_id(), self.generate_tracks(seed) )
+
+    def clear_playlist(self):
+        remove = []
+        tracks = self.sp.playlist_tracks(self.get_pl_id())
+
+        for i in tracks['items']:
+            remove.append(i['track']['id'])
+
+        self.sp.playlist_remove_all_occurrences_of_items(self.get_pl_id(), remove)
 
 
-    endpoint_url = f"https://api.spotify.com/v1/users/{user_id}/playlists"
-    request_body = json.dumps({
-            "name": name,
-            "description": "My first programmatic playlist, yooo!",
-            "public": True # let's keep it between us - for now
-            })
-    response = requests.post(url = endpoint_url, data = request_body, headers={"Content-Type":"application/json", 
-                            "Authorization":f"Bearer {token}"})
-    
-    print(response.json()['id'])
+if __name__ == '__main__':
 
-    return response.status_code
+    seeds = ['deep-house', 'detroit-techno', 'samba', 'indie']
+    seed_index = 0
 
+    c = radio_playlist('Anthony_alarm')
+    c.create_playlist()
 
-def get_playlist_id(playlist_name):
+    while True:
+        try:
+            c.clear_playlist()
+            c.fill_playlist(seeds[seed_index])
 
-    endpoint_url =  f"https://api.spotify.com/v1/users/{user_id}/playlists"
+            for day in range(7):
+                c.rotate_playlist()
+                sleep(3600*24)
 
-    response = requests.get( url = endpoint_url, headers={"Content-Type":"application/json", 
-                                                        "Authorization":f"Bearer {token}"})
+            seed_index = (seed_index+1)%len(seeds)
+            print(seed_index)
 
-    data = []
-
-    json_response = response.json()
-
-    for i in json_response['items']:
-        data.append( (i['name'], i['id']) )
-    
-    data = dict(data)
-
-    pl_id  = data[playlist_name]
-
-    return pl_id
-
-def fill_playlist(tracks, playlist_id):
-
-    endpoint_url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
-
-    request_body = json.dumps({
-            "uris" : tracks
-            })
-
-    response = requests.post(url = endpoint_url, data = request_body, 
-                            headers={"Content-Type":"application/json", 
-                                    "Authorization":f"Bearer {token}"})
-
-    return response.status_code
-
-pl_name = 'alarm_playlist'
-
-#create_playlist(pl_name)
-pl_id = get_playlist_id(pl_name)
-print(pl_id)
-print(fill_playlist(uris, pl_id))
+        except KeyboardInterrupt:
+             print("\n=== END ===")
+             break
