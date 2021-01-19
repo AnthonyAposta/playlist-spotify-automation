@@ -28,11 +28,7 @@ class radio_playlist:
 
     def generate_tracks(self, seeds):
         
-        tracks = self.sp.recommendations( 
-                                         seed_artists  = seeds['bandas'],  
-                                         min_energy = 0.1,
-                                         max_energy = 0.5,
-                                         limit = 7) 
+        tracks = self.sp.recommendations(**seeds,limit = 7) 
         uris= []
 
         for i in tracks['tracks']:
@@ -68,8 +64,16 @@ class radio_playlist:
 if __name__ == '__main__':
 
     seeds =  [
-                {'generos':['mpb', 'samba'], 'bandas': ['3DF0ClNOUuvS3gh8V8sRJH', '0yFvXd36g5sNKYDi0Kkvl8', '6cHQUDAPGKRE2NbVjBlOcz'], 'dance': 0.5 },
-                {'generos':['indie'], 'bandas': ['1LeVJ5GPeYDOVUjxx1y7Rp', '2RhgnQNC74QoBlaUvT4MEe'], 'dance': 0.5}
+                { 
+                 'seed_artists': ['3DF0ClNOUuvS3gh8V8sRJH', '0yFvXd36g5sNKYDi0Kkvl8', '6cHQUDAPGKRE2NbVjBlOcz'], 
+                 'min_energy': 0.1,
+                 'max_energy': 0.4 },
+                
+                
+                {
+                 'seed_artists': ['1LeVJ5GPeYDOVUjxx1y7Rp', '2RhgnQNC74QoBlaUvT4MEe'], 
+                 'min_energy': 0.1,
+                 'max_energy': 0.4 },
             ]
 
     seed_index = 0
