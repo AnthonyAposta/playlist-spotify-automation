@@ -26,9 +26,13 @@ class radio_playlist:
         except:
             self.sp.user_playlist_create(self.user_id, name = self.pl_name)
 
-    def generate_tracks(self, seed):
+    def generate_tracks(self, seeds):
         
-        tracks = self.sp.recommendations(seed_genres=[seed], limit=7) 
+        tracks = self.sp.recommendations( 
+                                         seed_artists  = seeds['bandas'],  
+                                         min_energy = 0.1,
+                                         max_energy = 0.5,
+                                         limit = 7) 
         uris= []
 
         for i in tracks['tracks']:
@@ -48,8 +52,8 @@ class radio_playlist:
 
         return pl_id
 
-    def fill_playlist(self, seed):
-        self.sp.playlist_add_items(self.get_pl_id(), self.generate_tracks(seed) )
+    def fill_playlist(self, seeds):
+        self.sp.playlist_add_items(self.get_pl_id(), self.generate_tracks(seeds) )
 
     def clear_playlist(self):
         remove = []
@@ -63,7 +67,11 @@ class radio_playlist:
 
 if __name__ == '__main__':
 
-    seeds = ['deep-house', 'detroit-techno', 'samba', 'indie']
+    seeds =  [
+                {'generos':['mpb', 'samba'], 'bandas': ['3DF0ClNOUuvS3gh8V8sRJH', '0yFvXd36g5sNKYDi0Kkvl8', '6cHQUDAPGKRE2NbVjBlOcz'], 'dance': 0.5 },
+                {'generos':['indie'], 'bandas': ['1LeVJ5GPeYDOVUjxx1y7Rp', '2RhgnQNC74QoBlaUvT4MEe'], 'dance': 0.5}
+            ]
+
     seed_index = 0
 
     c = radio_playlist('Anthony_alarm')
